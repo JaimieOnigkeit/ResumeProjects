@@ -12,6 +12,7 @@ wtforms = {extras = ["email"],version = "*"}
 flask-sqlalchemy = "*"
 flask-bcrypt = "*"
 flask-login = "*"
+pillow = "*"
 
 [requires]
 python_version = "3.7"
