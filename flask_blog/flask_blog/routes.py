@@ -3,30 +3,16 @@ import os
 from PIL import Image
 from flask import Flask, render_template, url_for, flash, redirect, request
 from flask_blog.models import User, Post
-from flask_blog.forms import RegistrationForm, LoginForm, UpdateAccountForm
+from flask_blog.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
 from flask_blog import app, db, bcrypt
 from flask_login import login_user, current_user, logout_user, login_required
-
-posts = [
-    {
-        'author' : 'Jaimie Onigkeit',
-        'title' : 'Blog Post 1',
-        'content' : 'First Post Content',
-        'date_posted' : 'June 1, 2020'
-    },
-    {
-        'author' : 'Jaimie Onigkeit',
-        'title' : 'Blog Post 2',
-        'content' : 'Second Post Content',
-        'date_posted' : 'June 7, 2020'
-    }
-]
 
 #Routes
 #Home page route
 @app.route("/")
 @app.route("/home")
 def home():
+    posts = Post.query.all()
     return render_template('home.html', posts=posts)
 
 #About page route
@@ -69,11 +55,13 @@ def login():
             flash('Login failed', 'danger')
     return render_template('login.html', title='Login', form=form)
 
+#Logout Route
 @app.route("/logout")
 def logout():
     logout_user()
     return redirect(url_for('home'))
 
+#Method to save picture
 def save_picture(form_picture):
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_picture.filename)
@@ -86,6 +74,7 @@ def save_picture(form_picture):
     i.save(picture_path)
     return picture_fn
 
+#Account page, can update username, email, and account picture
 @app.route("/account", methods=['GET', 'POST'])
 @login_required
 def account():
@@ -106,3 +95,21 @@ def account():
                           filename='profile_pics/' + current_user.image_file)
     return render_template('account.html', title='Account',
                             image_file=image_file, form=form)
+
+#New blog post route
+@app.route("/post/new", methods = ["GET", "POST"])
+@login_required
+def create_post():
+    form = PostForm()
+    if form.validate_on_submit():
+        post = Post(title=form.title.data, content=form.content.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash(['Your post has been created!'], ['success'])
+        return redirect(url_for('home'))
+    return render_template('create_post.html', title='New Post', form=form)
+
+@app.route("/post/<int:post_id>")
+def post(post_id):
+    post = Post.query.get_or_404(post_id)
+    return render_template('post.html', title=post.title, post=post)
